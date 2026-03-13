@@ -10,53 +10,135 @@
 <body>
     <div id="app-container">
         <nav class="top-nav">
-            <h1>今の波</h1>
-            <button id="history-btn" class="icon-btn" aria-label="履歴">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 13H5V21H3V13ZM21 17H19V21H21V17ZM15 9H13V21H15V9ZM10.5 4L8 15H10.5V21L16 10H13.5L16 4H10.5Z" fill="currentColor"/>
-                </svg>
+            <div class="title-with-icon">
+                <div class="logo-circle"></div>
+                <h1 id="view-title">今の波</h1>
+            </div>
+            <button id="history-btn-top" class="icon-btn" aria-label="設定">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             </button>
         </nav>
 
         <main id="main-content">
-            <!-- 1. 入力画面（危機文言はここから削除されました） -->
+            <!-- 1. 吐き出す画面 -->
             <section id="input-view" class="view active">
                 <div class="prompt-text">
                     <p>いま、どんな感じですか？</p>
+                    <p class="sub">まとまっていなくても大丈夫です</p>
                 </div>
                 
                 <div class="input-area">
-                    <textarea id="journal-input" placeholder="ただ、書き出してみてください。" rows="6"></textarea>
+                    <textarea id="journal-input" placeholder="ここにご自由に書いてください..." rows="10"></textarea>
+                </div>
+
+                <div class="chips-container" id="chips-container">
+                    <button class="chip" data-text="しんどい">しんどい</button>
+                    <button class="chip" data-text="頭がぐるぐる">頭がぐるぐる</button>
+                    <button class="chip" data-text="動けない">動けない</button>
+                    <button class="chip" data-text="少し動けた">少し動けた</button>
                 </div>
 
                 <div class="action-area">
-                    <button id="submit-btn" class="primary-btn" disabled>吐き出す</button>
+                    <button id="submit-btn" class="primary-btn" disabled>吐き出す →</button>
                 </div>
             </section>
 
-            <!-- 2. フィードバック画面（JSによって通常/危機が切り替わります） -->
+            <!-- 2. 今日の返し画面 -->
             <section id="feedback-view" class="view hidden">
-                <div class="feedback-card">
-                    <div id="fb-empathy" class="fb-section empathy"></div>
-                    <div class="divider" id="divider-1"></div>
-                    <div id="fb-fact" class="fb-section fact"></div>
-                    <div class="divider" id="divider-2"></div>
-                    <div id="fb-closing" class="fb-section closing"></div>
-                </div>
-                
-                <div class="action-area">
-                    <button id="back-btn" class="secondary-btn">戻る</button>
+                <div class="fb-cards-wrapper">
+                    <!-- A. 今日の受け止め -->
+                    <div id="fb-empathy" class="empathy-header-text"></div>
+                    <div class="wave-divider"></div>
+                    
+                    <!-- B. 今日の内容から整理したこと -->
+                    <div class="ui-card">
+                        <span class="section-title">今日の内容から</span>
+                        <div id="fb-organized-list"></div>
+                    </div>
+
+                    <!-- C. 残っている力 -->
+                    <div class="ui-card">
+                        <span class="section-title">残っている力</span>
+                        <div id="fb-strength-list"></div>
+                    </div>
+
+                    <!-- D. これまでの波 -->
+                    <div class="ui-card">
+                        <span class="section-title">これまでの波</span>
+                        <div id="fb-comparison-area">
+                            <div id="fb-comparison-text" style="font-size: 0.95rem; margin-bottom: 12px;"></div>
+                            <div id="fb-mini-chart-card" class="mini-chart-box">
+                                <!-- Wave logic placeholder -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E. 短い返し -->
+                    <div id="fb-closing-text" style="font-size: 1.05rem; padding: 10px 0; line-height: 1.5;"></div>
+
                 </div>
             </section>
 
             <!-- 3. 履歴画面 -->
             <section id="history-view" class="view hidden">
-                <div class="graph-container">
-                    <h2>これまでの波</h2>
-                    <p class="graph-desc">波はありますが、少しずつ変化しています。</p>
+                <div class="period-tabs">
+                    <button class="tab-btn active" data-range="7">7日</button>
+                    <button class="tab-btn" data-range="30">30日</button>
+                </div>
+
+                <div class="chart-wrapper">
                     <canvas id="waveChart"></canvas>
                 </div>
-                <div class="history-list"></div>
+                
+                <div class="chart-legend" style="display:flex; justify-content:center; gap:12px; font-size:0.8rem; color:#666; margin-bottom: 24px;">
+                    <span style="display:flex;align-items:center;gap:4px;"><i style="width:8px;height:8px;border-radius:50%;background:#8BAEAE;"></i>しんどさ</span>
+                    <span style="display:flex;align-items:center;gap:4px;"><i style="width:8px;height:8px;border-radius:50%;background:#E8D5D0;"></i>ぐるぐる</span>
+                    <span style="display:flex;align-items:center;gap:4px;"><i style="width:8px;height:8px;border-radius:50%;background:#B7C9B7;"></i>動けた</span>
+                </div>
+
+                <div id="history-summary-text" class="history-caption"></div>
+
+                <div class="recent-list">
+                    <p style="font-size:0.9rem; font-weight:700; color:#888; margin-bottom:12px;">最近の記録</p>
+                    <div id="recent-logs-list"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div id="nav-home" class="nav-item active">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div id="nav-add" class="add-btn-circle">
+                <span>+</span>
+            </div>
+            <div id="nav-history" class="nav-item">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+            </div>
+        </nav>
+
+            <!-- 3. 履歴画面 -->
+            <section id="history-view" class="view hidden">
+                <div class="period-toggle">
+                    <button class="toggle-btn active" data-range="7">7日</button>
+                    <button class="toggle-btn" data-range="30">30日</button>
+                </div>
+
+                <div class="graph-box">
+                    <canvas id="waveChart"></canvas>
+                </div>
+
+                <div id="history-summary" class="history-summary"></div>
+
+                <div class="recent-records-section">
+                    <p class="recent-logs-title">最近の記録</p>
+                    <div id="recent-logs-list"></div>
+                </div>
+
+                <div class="action-area">
+                    <button id="history-back-btn" class="secondary-btn">戻る</button>
+                </div>
             </section>
         </main>
     </div>

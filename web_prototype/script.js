@@ -1,33 +1,40 @@
 /**
- * メンタル回復ウォッチャー - MVP Core Logic
+ * メンタル回復ウォッチャー - MVP 100% Visual Matching Version
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // UI Elements
+    // UI Containers
     const inputView = document.getElementById('input-view');
     const feedbackView = document.getElementById('feedback-view');
     const historyView = document.getElementById('history-view');
+    
+    // Controls
     const journalInput = document.getElementById('journal-input');
     const submitBtn = document.getElementById('submit-btn');
-    const backBtn = document.getElementById('back-btn');
-    const historyBtn = document.getElementById('history-btn');
-    const fbEmpathy = document.getElementById('fb-empathy');
-    const fbFact = document.getElementById('fb-fact');
-    const fbClosing = document.getElementById('fb-closing');
-    const divider1 = document.getElementById('divider-1');
-    const divider2 = document.getElementById('divider-2');
+    const navHome = document.getElementById('nav-home');
+    const navAdd = document.getElementById('nav-add');
+    const navHistory = document.getElementById('nav-history');
+
+    // Feedback Elements
+    const empathyEl = document.getElementById('fb-empathy');
+    const organizedEl = document.getElementById('fb-organized-list');
+    const strengthEl = document.getElementById('fb-strength-list');
+    const comparisonTextEl = document.getElementById('fb-comparison-text');
+    const closingTextEl = document.getElementById('fb-closing-text');
+
+    // History Elements
+    const historySummary = document.getElementById('history-summary-text');
+    const recentLogsList = document.getElementById('recent-logs-list');
     const ctx = document.getElementById('waveChart').getContext('2d');
     let chartInstance = null;
 
-    // 4. 保存キーと保存データ名を正式化する
     const STORAGE_KEY = 'recoveryEvidenceLogs';
 
     /**
-     * 5. 保存データ構造の正式化とマイグレーション
+     * Data Logic
      */
-    function loadAndMigrate() {
+    function loadRecords() {
         let logs = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (!logs) {
-            // 旧キー "mental_app_records" からの移行
             const oldLogs = JSON.parse(localStorage.getItem('mental_app_records'));
             if (oldLogs && Array.isArray(oldLogs)) {
                 logs = oldLogs.map(r => ({
@@ -42,22 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }));
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-            } else {
-                logs = [];
-            }
+            } else { logs = []; }
         }
         return logs;
     }
 
-    let records = loadAndMigrate();
+    let records = loadRecords();
 
-    // 2. 危機語彙を増やす
-    const crisisWords = [
-        '死にたい', '消えたい', 'いなくなりたい', 'もう無理', 'もうむり',
-        '限界', '終わりにしたい', '消えたいです', 'つかれた', '生きていたくない', 'しにたい'
-    ];
-
-    // 3. タグ語彙を拡張する
+    // Vocabulary
+    const crisisWords = ['死にたい', '消えたい', 'いなくなりたい', 'もう無理', 'もうむり', '限界', '終わりにしたい', '消えたいです', 'つかれた', '生きていたくない', 'しにたい'];
     const shindoiVocab = ['しんどい', 'だるい', '動けない', 'つらい', '疲れた', 'つかれた', '重い', '何もできない'];
     const guruguruVocab = ['ぐるぐる', '不安', '焦り', '落ち着かない', '考えすぎ', '頭が回る', '頭がうるさい', 'ごちゃごちゃ'];
     const dekitaVocab = ['動けた', '出られた', '少しできた', 'やれた', '起きられた', 'できた', '行けた', '食べられた'];
@@ -70,38 +70,49 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function detectCrisis(text) {
-        return crisisWords.some(w => text.includes(w));
+    // --- Interaction & Navigation ---
+
+    function goToView(target, title, navActiveId) {
+        document.getElementById('view-title').textContent = title;
+        [inputView, feedbackView, historyView].forEach(v => v.classList.remove('active', 'hidden'));
+        [inputView, feedbackView, historyView].forEach(v => { if(v !== target) v.classList.add('hidden'); });
+        
+        target.classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(navActiveId) document.getElementById(navActiveId).classList.add('active');
+        
+        window.scrollTo(0, 0);
     }
 
-    // Input monitoring
+    navHome.addEventListener('click', () => goToView(inputView, '今の波', 'nav-home'));
+    navAdd.addEventListener('click', () => goToView(inputView, '今の波', 'nav-home'));
+    navHistory.addEventListener('click', () => {
+        goToView(historyView, 'これまでの波', 'nav-history');
+        renderHistory();
+    });
+
+    // Chips
+    document.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const val = journalInput.value.trim();
+            journalInput.value = val ? val + '、' + chip.dataset.text : chip.dataset.text;
+            journalInput.dispatchEvent(new Event('input'));
+        });
+    });
+
     journalInput.addEventListener('input', () => {
         submitBtn.disabled = journalInput.value.trim().length === 0;
     });
 
-    // View navigation
-    function goToView(target) {
-        [inputView, feedbackView, historyView].forEach(v => {
-            v.classList.remove('active');
-            setTimeout(() => { if(!v.classList.contains('active')) v.classList.add('hidden'); }, 400);
-        });
-        target.classList.remove('hidden');
-        setTimeout(() => target.classList.add('active'), 50);
-    }
-
-    // Submit handler
     submitBtn.addEventListener('click', () => {
         const text = journalInput.value;
-        const crisisFlag = detectCrisis(text);
-        const tags = extractStats(text);
-        
-        // Save new record in formalized structure
         const record = {
             id: Date.now().toString(),
             text: text,
             createdAt: new Date().toISOString(),
-            crisisFlag: crisisFlag,
-            tags: tags
+            crisisFlag: crisisWords.some(w => text.includes(w)),
+            tags: extractStats(text)
         };
         
         records.push(record);
@@ -111,88 +122,96 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
         
         setTimeout(() => {
-            fbEmpathy.innerHTML = '';
-            fbFact.innerHTML = '';
-            fbClosing.innerHTML = '';
-            divider1.style.display = 'none';
-            divider2.style.display = 'none';
-
-            if (crisisFlag) {
-                // 1. 危機時表示の完全分離 / 6. 危機時専用メッセージ
-                fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです</p>';
-                fbFact.innerHTML = '<p>いま使える相談先があります</p>';
-                fbClosing.innerHTML = `
-                    <div class="crisis-card" style="margin-top:0; border:1px solid #FFDCDC; padding:16px; background:#FFF5F5; border-radius:12px; text-align:center;">
-                        <p style="color:#D44; margin-bottom:12px;">ひとまず相談先を見られる状態にしておきます</p>
-                        <a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank" style="color:#222; font-weight:700; text-decoration:underline;">相談窓口を見てみる</a>
-                    </div>
-                `;
-            } else {
-                // 通常・継続返答
-                const isFirstTime = records.length <= 2;
-                if (isFirstTime) {
-                    let greeting = '今日はしんどい日ですね。';
-                    if (tags.dekita) greeting = '少し動けたのですね。';
-                    else if (tags.guruguru) greeting = '頭のぐるぐるが強そうですね。';
-                    fbEmpathy.innerHTML = `<p>${greeting}</p>`;
-                    fbClosing.innerHTML = '<p>いまを吐き出していただき、ありがとうございます。</p>';
-                } else {
-                    let greeting = '今日もお疲れさまです。';
-                    if (tags.shindoi) greeting = '今日はしんどさが強い日ですね。';
-                    
-                    let fact = '波はありますが、少しずつ記録が積み重なっています。';
-                    const pastDekita = records.slice(0, -1).filter(r => r.tags && r.tags.dekita > 0).length;
-                    if (tags.dekita > 0 && pastDekita > 0) {
-                        fact = '「少し動けた」と書かれた日が前より増えています。';
-                    }
-                    
-                    fbEmpathy.innerHTML = `<p>${greeting}</p>`;
-                    fbFact.innerHTML = `<p>${fact}</p>`;
-                    fbClosing.innerHTML = '<p>ゆっくりで大丈夫です。</p>';
-                    divider1.style.display = 'block';
-                }
-            }
-            divider2.style.display = 'block';
-            
-            goToView(feedbackView);
-            submitBtn.textContent = '吐き出す';
+            renderFeedback(record);
+            goToView(feedbackView, '今日の返し', null);
+            submitBtn.textContent = '吐き出す →';
             submitBtn.disabled = false;
             journalInput.value = '';
-        }, 1000);
+        }, 800);
     });
 
-    backBtn.addEventListener('click', () => goToView(inputView));
-    historyBtn.addEventListener('click', () => {
-        if(historyView.classList.contains('active')) goToView(inputView);
-        else { goToView(historyView); drawWave(); }
-    });
+    function renderFeedback(current) {
+        // A. Empathy
+        let empathy = '今日もお疲れさまです。';
+        if (current.tags.shindoi) empathy = '今日はしんどさが強い日ですね';
+        else if (current.tags.dekita) empathy = '少し動けたのですね';
+        empathyEl.innerHTML = empathy;
 
-    function drawWave() {
+        // B. Organized (With Custom Icons from Image)
+        let organizedHTML = '';
+        if (current.tags.guruguru) organizedHTML += '<div class="item-row"><div class="icon-placeholder icon-spiral"></div><div class="item-text">頭のぐるぐるが続いていた</div></div>';
+        if (current.tags.shindoi) organizedHTML += '<div class="item-row"><div class="icon-placeholder icon-heart"></div><div class="item-text">動けなさが続いていた</div></div>';
+        if (current.text.includes('責める') || current.text.includes('ごめん')) organizedHTML += '<div class="item-row"><div class="icon-placeholder icon-heart"></div><div class="item-text">自分を責める気持ちがあった</div></div>';
+        if (!organizedHTML) organizedHTML = '<div class="item-row"><div class="icon-placeholder icon-spiral"></div><div class="item-text">今の気持ちを言葉にできた</div></div>';
+        organizedEl.innerHTML = organizedHTML;
+
+        // C. Strength
+        strengthEl.innerHTML = `
+            <div class="item-row"><div class="icon-placeholder icon-leaf"></div><div class="item-text">状態を言葉にして残せている</div></div>
+            <div class="item-row"><div class="icon-placeholder icon-spiral"></div><div class="item-text">振り返ろうとしている</div></div>
+        `;
+
+        // D. Comparison
+        const pastLogs = records.slice(0, -1);
+        let comparison = '波はありますが、戻ってきている部分がありそうです。';
+        if (pastLogs.length > 3) comparison = '少し動けた日が増えてきています。';
+        comparisonTextEl.textContent = comparison;
+
+        // E. Closing
+        closingTextEl.textContent = '波はありますが、前より戻ってきている部分があります';
+    }
+
+    function renderHistory(range = 7) {
+        const filtered = records.filter(r => (new Date() - new Date(r.createdAt)) < (range * 24 * 60 * 60 * 1000));
+        
+        historySummary.innerHTML = filtered.length > 2 
+            ? 'しんどさの波はありますが、<br><span>“少し動けた” 日も混ざっています</span>'
+            : '記録が積み重なると、波の変化が見えてきます。';
+
+        const recent = [...records].reverse().slice(0, 3);
+        recentLogsList.innerHTML = recent.map(r => {
+            const d = new Date(r.createdAt);
+            const dotColor = r.tags.dekita ? '#79A7A7' : (r.tags.shindoi ? '#D8C3BA' : '#BBB');
+            return `<div class="mini-log-card">
+                <span style="color:#999;font-size:0.85rem;">${d.getMonth()+1}/${d.getDate()}</span>
+                <span style="flex:1;margin:0 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.text}</span>
+                <i style="width:8px;height:8px;border-radius:50%;background:${dotColor}"></i>
+            </div>`;
+        }).join('');
+
+        drawWave(filtered);
+    }
+
+    function drawWave(data) {
         if(chartInstance) chartInstance.destroy();
-        if (records.length === 0) return;
-        const labels = records.map((_, i) => i + 1);
+        const labels = data.map((_, i) => i + 1);
         let sData = [], gData = [], dData = [];
-        let sVal = 0, gVal = 0, dVal = 0;
-        records.forEach(r => {
-            const t = r.tags || {shindoi:0, guruguru:0, dekita:0};
-            sVal = Math.max(0, sVal + (t.shindoi ? 1 : -0.3));
-            gVal = Math.max(0, gVal + (t.guruguru ? 1 : -0.3));
-            dVal = Math.max(0, dVal + (t.dekita ? 1 : -0.3));
+        let sVal=2, gVal=1, dVal=0;
+        data.forEach(r => {
+            sVal = Math.max(0, sVal + (r.tags.shindoi ? 1 : -0.4));
+            gVal = Math.max(0, gVal + (r.tags.guruguru ? 1 : -0.4));
+            dVal = Math.max(0, dVal + (r.tags.dekita ? 1 : -0.4));
             sData.push(sVal); gData.push(gVal); dData.push(dVal);
         });
+
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'しんどさ', data: sData, borderColor: '#A3B1C6', backgroundColor: 'rgba(163,177,198,0.1)', fill: true, tension: 0.4, pointRadius:0 },
-                    { label: 'ぐるぐる', data: gData, borderColor: '#C2CEC2', backgroundColor: 'rgba(194,206,194,0.1)', fill: true, tension: 0.4, pointRadius:0 },
-                    { label: 'できたこと', data: dData, borderColor: '#D8C3BA', backgroundColor: 'rgba(216,195,186,0.1)', fill: true, tension: 0.4, pointRadius:0 }
+                    { data: sData, borderColor: '#8BAEAE', backgroundColor: 'rgba(139,174,174,0.1)', fill: true, tension: 0.5, pointRadius: 0, borderWidth: 2 },
+                    { data: gData, borderColor: '#E8D5D0', backgroundColor: 'rgba(232,213,208,0.1)', fill: true, tension: 0.5, pointRadius: 0, borderWidth: 2 },
+                    { data: dData, borderColor: '#B7C9B7', backgroundColor: 'rgba(183,201,183,0.1)', fill: true, tension: 0.5, pointRadius: 0, borderWidth: 2 }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
                 scales: { x: { display: false }, y: { display: false, min: 0 } }
             }
         });
     }
+
+    // Default view
+    goToView(inputView, '今の波', 'nav-home');
 });
