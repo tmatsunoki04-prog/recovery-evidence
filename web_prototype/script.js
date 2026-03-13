@@ -17,45 +17,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('waveChart').getContext('2d');
     let chartInstance = null;
 
-    // --- データ保存の正式化・マイグレーション ---
+    // 4. 保存キーと保存データ名を正式化する / 5. 旧データがあっても壊れないようにする
     const OLD_STORAGE_KEY = 'mental_app_records';
     const NEW_STORAGE_KEY = 'recoveryEvidenceLogs';
-    
-    function loadAndMigrateRecords() {
-        let logs = JSON.parse(localStorage.getItem(NEW_STORAGE_KEY));
-        if (!logs) {
-            const oldLogs = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY));
-            if (oldLogs && oldLogs.length > 0) {
-                logs = oldLogs.map(r => {
-                    const extracted = r.extractedTags || [];
-                    return {
-                        id: (r.id || Date.now()).toString(),
-                        text: r.text || "",
-                        createdAt: new Date(r.timestamp || Date.now()).toISOString(),
-                        crisisFlag: r.crisisFlag || false,
-                        tags: {
-                            shindoi: extracted.includes('しんどさ') ? 1 : 0,
-                            guruguru: extracted.includes('ぐるぐる') ? 1 : 0,
-                            dekita: extracted.includes('動けたこと') ? 1 : 0
-                        }
-                    };
-                });
-                localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(logs));
-            } else {
-                logs = [];
-            }
+
+    let records = JSON.parse(localStorage.getItem(NEW_STORAGE_KEY));
+    if (!records) {
+        const oldRecords = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY));
+        if (oldRecords && oldRecords.length > 0) {
+            records = oldRecords.map(r => {
+                const ext = r.extractedTags || [];
+                return {
+                    id: (r.id || Date.now()).toString(),
+                    text: r.text || "",
+                    createdAt: new Date(r.timestamp || Date.now()).toISOString(),
+                    crisisFlag: r.crisisFlag || false,
+                    tags: {
+                        shindoi: ext.includes('しんどさ') ? 1 : 0,
+                        guruguru: ext.includes('ぐるぐる') ? 1 : 0,
+                        dekita: ext.includes('動けたこと') ? 1 : 0
+                    }
+                };
+            });
+            localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(records));
+        } else {
+            records = [];
         }
-        return logs;
     }
 
-    let records = loadAndMigrateRecords();
-
-    // --- 語彙の拡張 ---
+    // 2. 危機語彙を増やす
     const crisisWords = [
         '死にたい', '消えたい', 'いなくなりたい', 'もう無理', 'もうむり',
         '限界', '終わりにしたい', '消えたいです', 'つかれた', '生きていたくない', 'しにたい'
     ];
-    
+
+    // 3. タグ語彙を拡張する
     const shindoiWords = [
         'しんどい', 'だるい', '動けない', 'つらい', '疲れた', 'つかれた', '重い', '何もできない'
     ];
@@ -69,13 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     function extractTags(text) {
-        let shindoi = 0;
-        let guruguru = 0;
-        let dekita = 0;
-        if (shindoiWords.some(w => text.includes(w))) shindoi = 1;
-        if (guruguruWords.some(w => text.includes(w))) guruguru = 1;
-        if (dekitaWords.some(w => text.includes(w))) dekita = 1;
-        return { shindoi, guruguru, dekita };
+        return {
+            shindoi: shindoiWords.some(w => text.includes(w)) ? 1 : 0,
+            guruguru: guruguruWords.some(w => text.includes(w)) ? 1 : 0,
+            dekita: dekitaWords.some(w => text.includes(w)) ? 1 : 0
+        };
     }
 
     function hasCrisisWord(text) {
@@ -123,16 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
         
         setTimeout(() => {
-            // --- 危機時の完全分離 ---
+            // 1. 危機時表示を通常表示と完全に分離する / 6. 危機時だけは必ず専用文にする
             if (crisisFlag) {
-                fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです。</p>';
-                fbFact.innerHTML = '<p>いま使える相談先があります。</p>';
-                fbClosing.innerHTML = '<div class="crisis-card"><p>ひとまず相談先を見られる状態にしておきます</p><a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank">相談窓口を見てみる</a></div>';
+                fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです</p>';
+                fbFact.innerHTML = '';
+                fbClosing.innerHTML = '<div class="crisis-card" style="margin-top:0;"><p>いま使える相談先があります<br>ひとまず相談先を見られる状態にしておきます</p><a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank">相談窓口を見てみる</a></div>';
                 
-                divider1.style.display = 'block';
-                divider2.style.display = 'block'; 
+                divider1.style.display = 'none';
+                divider2.style.display = 'none'; 
             } else {
-                // --- 初回/継続の返答分岐 ---
                 const isFirstOrFew = records.length <= 2;
                 
                 if (isFirstOrFew) {
@@ -142,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (tags.dekita) empathyText = '少し動けたのですね。';
                     
                     fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
-                    fbFact.innerHTML = ''; // 過去比較はしない
+                    fbFact.innerHTML = '';
                     fbClosing.innerHTML = '<p>いまを残していただき、ありがとうございます。</p>';
                 } else {
                     let empathyText = '今日もお疲れさまです。';
@@ -154,15 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const pastDekita = records.slice(0, -1).filter(r => r.tags && r.tags.dekita > 0).length;
                     const pastShindoi = records.slice(0, -1).filter(r => r.tags && r.tags.shindoi > 0).length;
                     
-                    if (tags.dekita && pastDekita > 0) {
+                    if (tags.dekita > 0 && pastDekita > 0) {
                         factText = '最近は「少し動けた」と書かれる日が前より増えています。';
-                    } else if (tags.shindoi && pastShindoi > 0) {
+                    } else if (tags.shindoi > 0 && pastShindoi > 0) {
                         factText = 'しんどい日の中でも、短い言葉で残せる日は続いています。';
                     }
 
                     fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
                     fbFact.innerHTML = `<p>${factText}</p>`;
-                    fbClosing.innerHTML = '<p>ゆっくり休むことも大切です。</p>'; // 大丈夫です、治って等は禁止
+                    fbClosing.innerHTML = '<p>ゆっくり休むことも大切です。</p>';
                 }
             }
             
@@ -174,8 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            divider1.style.display = (fbFact.innerHTML === '') ? 'none' : 'block';
-            divider2.style.display = (fbClosing.innerHTML === '') ? 'none' : 'block';
+            if (!crisisFlag) {
+                divider1.style.display = (fbFact.innerHTML === '') ? 'none' : 'block';
+                divider2.style.display = (fbClosing.innerHTML === '') ? 'none' : 'block';
+            }
             [divider1, divider2].forEach(el => {
                 if(el.style.display !== 'none') {
                     el.style.animation = 'none';
