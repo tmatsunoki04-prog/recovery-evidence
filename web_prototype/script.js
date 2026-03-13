@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }));
                 localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(logs));
-                // 移行後は旧データを削除しても良いが、安全のため残す場合は何もしない
             } else {
                 logs = [];
             }
@@ -88,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function switchView(targetView) {
-        // 全ビューのフェードアウト
         [inputView, feedbackView, historyView].forEach(view => {
             view.classList.remove('active');
             setTimeout(() => {
@@ -98,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 400); 
         });
         
-        // ターゲットビューの表示
         targetView.classList.remove('hidden');
         setTimeout(() => {
             targetView.classList.add('active');
@@ -110,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const crisisFlag = hasCrisisWord(text);
         const tags = extractTags(text);
         
-        // データ保存の正規化
+        // 4. 保存データ名の正式化
         const newRecord = {
             id: Date.now().toString(),
             text: text,
@@ -125,16 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = '生成中...';
         submitBtn.disabled = true;
         
-        // 生成演出（1秒）
         setTimeout(() => {
-            // フィードバック内容の構築
             fbEmpathy.innerHTML = '';
             fbFact.innerHTML = '';
             fbClosing.innerHTML = '';
             divider1.style.display = 'none';
             divider2.style.display = 'none';
 
-            // 1. 危機時表示を通常表示と完全に分離する / 6. 危機時は専用文
+            // 1. 危機時表示を通常表示と完全に分離 / 6. 危機時は専用文
             if (crisisFlag) {
                 fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです</p>';
                 fbFact.innerHTML = '<p>いま使える相談先があります</p>';
@@ -147,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 divider1.style.display = 'block';
                 divider2.style.display = 'block';
             } else {
-                // 通常・継続の返答分岐
                 const isFirstOrFew = records.length <= 2;
                 
                 if (isFirstOrFew) {
@@ -182,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 divider2.style.display = 'block';
             }
             
-            // アニメーションの再トリガー
             [fbEmpathy, fbFact, fbClosing, divider1, divider2].forEach(el => {
                 if(el && (el.innerHTML !== '' || el.style.display === 'block')) {
                     el.style.animation = 'none';
