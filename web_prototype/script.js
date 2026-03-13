@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
     const crisisWords = ['死にたい', '消えたい', 'いなくなりたい', 'もう無理', '限界', '終わりにしたい'];
-    const shindosaWords = ['しんどい', 'だるい', '動けない', '辛い', '苦しい', 'むり'];
-    const guruguruWords = ['頭がぐるぐる', '不安', '焦り', '考えすぎ', '眠れない', '寝られない'];
-    const ugoketaWords = ['動けた', '出られた', '少しできた', 'できた', '行けた'];
+    const shindosaWords = ['しんどい', 'だるい', '動けない'];
+    const guruguruWords = ['頭がぐるぐる', '不安', '焦り'];
+    const ugoketaWords = ['動けた', '出られた', '少しできた'];
 
     function extractTags(text) {
         const tags = [];
@@ -105,13 +105,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     let empathyText = '今日もお疲れさまです。';
                     if (tags.includes('しんどさ')) empathyText = '今日はしんどさが強い日ですね。';
+                    if (tags.includes('ぐるぐる')) empathyText = '今日は頭のぐるぐるが強い日ですね。';
+                    if (tags.includes('動けたこと')) empathyText = '今日は少し動けたのですね。';
                     
                     let factText = '波はありますが、全部が悪い日ではなくなってきています。';
                     const pastUgoketa = records.slice(0, -1).filter(r => r.extractedTags.includes('動けたこと')).length;
+                    const pastShindosa = records.slice(0, -1).filter(r => r.extractedTags.includes('しんどさ')).length;
                     
                     if (tags.includes('動けたこと') && pastUgoketa > 0) {
                         factText = '最近は「少し動けた」と書かれる日が前より増えています。';
-                    } else if (tags.includes('しんどさ')) {
+                    } else if (tags.includes('しんどさ') && pastShindosa > 0) {
                         factText = 'しんどい日の中でも、短い言葉で残せる日は続いています。';
                     }
 
@@ -171,9 +174,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const labels = records.map((_, i) => i + 1);
         
-        const shindosaData = records.map(r => r.extractedTags.includes('しんどさ') ? 3 : 1);
-        const guruguruData = records.map(r => r.extractedTags.includes('ぐるぐる') ? 2 : 0);
-        const ugoketaData = records.map(r => r.extractedTags.includes('動けたこと') ? 4 : 1);
+        let shindosaData = [];
+        let guruguruData = [];
+        let ugoketaData = [];
+        
+        let shindosaScore = 0;
+        let guruguruScore = 0;
+        let ugoketaScore = 0;
+
+        records.forEach(r => {
+            if (r.extractedTags.includes('しんどさ')) shindosaScore += 1;
+            else if (shindosaScore > 0) shindosaScore -= 0.5;
+
+            if (r.extractedTags.includes('ぐるぐる')) guruguruScore += 1;
+            else if (guruguruScore > 0) guruguruScore -= 0.5;
+
+            if (r.extractedTags.includes('動けたこと')) ugoketaScore += 1;
+            else if (ugoketaScore > 0) ugoketaScore -= 0.5;
+
+            shindosaData.push(Math.max(0, shindosaScore));
+            guruguruData.push(Math.max(0, guruguruScore));
+            ugoketaData.push(Math.max(0, ugoketaScore));
+        });
 
         chartInstance = new Chart(ctx, {
             type: 'line',
@@ -188,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: true
+                        fill: false
                     },
                     {
                         label: '頭のぐるぐる',
@@ -198,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: true
+                        fill: false
                     },
                     {
                         label: '動けたこと',
@@ -208,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: true
+                        fill: false
                     }
                 ]
             },
@@ -223,8 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     x: { display: false },
                     y: { 
                         display: false,
-                        min: 0,
-                        max: 5
+                        min: 0
                     }
                 },
                 animation: {
