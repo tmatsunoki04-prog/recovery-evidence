@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メンタル回復ウォッチャー</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- フォント: 丸みがあり優しく読みやすい「Zen Maru Gothic」を採用 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- ナビゲーションバー -->
+        <nav class="top-nav">
+            <h1>今の波</h1>
+            <button id="history-btn" class="icon-btn" aria-label="履歴">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 13H5V21H3V13ZM21 17H19V21H21V17ZM15 9H13V21H15V9ZM10.5 4L8 15H10.5V21L16 10H13.5L16 4H10.5Z" fill="currentColor"/>
+                </svg>
+            </button>
+        </nav>
+
+        <!-- メインエリア -->
+        <main id="main-content">
+            
+            <!-- 入力画面ビュー -->
+            <section id="input-view" class="view active">
+                <div class="prompt-text">
+                    <p>いま、どんな感じですか？</p>
+                </div>
+                
+                <div class="input-area">
+                    <textarea id="journal-input" placeholder="ただ、書き出してみてください。" rows="6"></textarea>
+                </div>
+                
+                <!-- 危機対応リンク (非表示がデフォルト) -->
+                <div id="crisis-link" class="crisis-card hidden">
+                    <p>もし、つらい気持ちでいっぱいになったら</p>
+                    <a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank">相談窓口を見てみる</a>
+                </div>
+
+                <div class="action-area">
+                    <button id="submit-btn" class="primary-btn" disabled>預ける</button>
+                </div>
+            </section>
+
+            <!-- フィードバック（結果）ビュー -->
+            <section id="feedback-view" class="view hidden">
+                <div class="feedback-card">
+                    <div id="fb-empathy" class="fb-section empathy">
+                        <!-- 共感メッセージがここに入ります -->
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div id="fb-fact" class="fb-section fact">
+                        <!-- 客観的事実がここに入ります -->
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div id="fb-closing" class="fb-section closing">
+                        <!-- 短い返しがここに入ります -->
+                    </div>
+                </div>
+                
+                <div class="action-area">
+                    <button id="back-btn" class="secondary-btn">戻る</button>
+                </div>
+            </section>
+
+            <!-- 履歴・グラフビュー -->
+            <section id="history-view" class="view hidden">
+                <div class="graph-container">
+                    <h2>これまでの波</h2>
+                    <p class="graph-desc">波はありますが、少しずつ変化しています。</p>
+                    <canvas id="waveChart"></canvas>
+                </div>
+                <!-- 過去の記録リストが続く場合はここに追加 -->
+                <div class="history-list">
+                    <!-- サンプルデータ -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Chart.js (スプライン曲線描画用) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

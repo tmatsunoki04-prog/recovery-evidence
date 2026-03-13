@@ -1,0 +1,298 @@
+/* 🎨 色設計 (Color Palette)
+ * 強い刺激を避け、沈静効果と安心感を与えるペールトーン・くすみカラーを採用
+ */
+:root {
+    --bg-color: #F8F9FA;         /* 少し温かみのあるオフホワイト */
+    --card-bg: #FFFFFF;          /* カード背景は白 */
+    --text-main: #4A4A4A;        /* 真っ黒を避け、柔らかいダークグレー */
+    --text-muted: #8E8E93;       /* 控えめなグレー */
+    
+    /* テーマカラー (セージグリーン〜ブルーグレー系) */
+    --primary-color: #8D9F8D;    /* 落ち着いたセージグリーン */
+    --primary-light: #C2CEC2;    /* 薄いグリーン */
+    --accent-color: #A3B1C6;     /* くすんだブルーグレー (波の色) */
+    
+    /* 危機時用 (強い赤を避け、少し落ち着いたコーラル系) */
+    --crisis-color: #D48C8C;     
+    --crisis-bg: #FFF0F0;
+
+    /* エレベーション・シャドウ (非常に控えめに) */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+    
+    --radius-md: 16px;
+    --radius-lg: 24px;
+}
+
+/* 🔄 基本設定・リセット */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Zen Maru Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    /* モバイル・アプリ風の表示領域に制限 */
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+#app-container {
+    width: 100%;
+    max-width: 420px; /* スマホサイズ */
+    background-color: var(--bg-color);
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 🧭 ナビゲーション */
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 20px 16px;
+    background-color: transparent;
+}
+
+.top-nav h1 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+/* 📱 メインコンテンツ領域 */
+#main-content {
+    flex: 1;
+    padding: 0 20px 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ビューの切り替え (ふんわりフェード) */
+.view {
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease-in-out, transform 0.4s ease;
+    transform: translateY(10px);
+}
+
+.view.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    position: relative;
+    left: 0;
+    right: 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ✍️ 入力画面 */
+.prompt-text {
+    margin-top: 20px;
+    margin-bottom: 24px;
+}
+
+.prompt-text p {
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.input-area textarea {
+    width: 100%;
+    background-color: var(--card-bg);
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--text-main);
+    resize: none;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.input-area textarea:focus {
+    outline: none;
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.input-area textarea::placeholder {
+    color: #C7C7CC;
+}
+
+/* ボタン類 */
+.action-area {
+    margin-top: 32px;
+    display: flex;
+    justify-content: center;
+}
+
+button {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 30px;
+    padding: 14px 40px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(141, 159, 141, 0.3);
+}
+
+.primary-btn:disabled {
+    background-color: var(--primary-light);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.secondary-btn {
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--text-muted);
+}
+
+/* 🚨 危機対応リンク */
+.crisis-card {
+    margin-top: 16px;
+    background-color: var(--crisis-bg);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    text-align: center;
+    font-size: 0.9rem;
+    animation: fadeIn 0.5s ease;
+}
+
+.crisis-card p {
+    color: var(--crisis-color);
+    margin-bottom: 8px;
+}
+
+.crisis-card a {
+    color: var(--text-main);
+    text-decoration: underline;
+    text-decoration-color: var(--crisis-color);
+}
+
+/* 💬 フィードバック結果画面 */
+.feedback-card {
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    box-shadow: var(--shadow-md);
+    margin-top: 20px;
+}
+
+.fb-section {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: slideUpFade 0.6s ease forwards;
+}
+
+.fb-section.empathy {
+    font-size: 1.1rem;
+    color: var(--text-main);
+    animation-delay: 0.1s;
+}
+
+.fb-section.fact {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    animation-delay: 1.5s; /* 少し遅れて表示 (読ませる間をつくる) */
+}
+
+.fb-section.closing {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-main);
+    text-align: center;
+    animation-delay: 3.0s; /* 最後に表示 */
+}
+
+.divider {
+    height: 1px;
+    background-color: #F0F0F0;
+    margin: 20px 0;
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.divider:nth-of-type(1) { animation-delay: 1.2s; }
+.divider:nth-of-type(2) { animation-delay: 2.7s; }
+
+
+/* 📈 履歴・グラフ画面 */
+.graph-container {
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin-top: 10px;
+}
+
+.graph-container h2 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.graph-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+/* アニメーション用キーフレーム */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUpFade {
+    from { 
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
