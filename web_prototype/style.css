@@ -1,22 +1,16 @@
-/* 🎨 色設計 (Color Palette)
- * 強い刺激を避け、沈静効果と安心感を与えるペールトーン・くすみカラーを採用
- */
 :root {
-    --bg-color: #F8F9FA;         /* 少し温かみのあるオフホワイト */
-    --card-bg: #FFFFFF;          /* カード背景は白 */
-    --text-main: #4A4A4A;        /* 真っ黒を避け、柔らかいダークグレー */
-    --text-muted: #8E8E93;       /* 控えめなグレー */
+    --bg-color: #F8F9FA;
+    --card-bg: #FFFFFF;
+    --text-main: #4A4A4A;
+    --text-muted: #8E8E93;
     
-    /* テーマカラー (セージグリーン〜ブルーグレー系) */
-    --primary-color: #8D9F8D;    /* 落ち着いたセージグリーン */
-    --primary-light: #C2CEC2;    /* 薄いグリーン */
-    --accent-color: #A3B1C6;     /* くすんだブルーグレー (波の色) */
+    --primary-color: #8D9F8D;
+    --primary-light: #C2CEC2;
+    --accent-color: #A3B1C6;
     
-    /* 危機時用 (強い赤を避け、少し落ち着いたコーラル系) */
     --crisis-color: #D48C8C;     
     --crisis-bg: #FFF0F0;
 
-    /* エレベーション・シャドウ (非常に控えめに) */
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
     
@@ -24,7 +18,6 @@
     --radius-lg: 24px;
 }
 
-/* 🔄 基本設定・リセット */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -37,7 +30,6 @@ body {
     color: var(--text-main);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    /* モバイル・アプリ風の表示領域に制限 */
     display: flex;
     justify-content: center;
     min-height: 100vh;
@@ -45,7 +37,7 @@ body {
 
 #app-container {
     width: 100%;
-    max-width: 420px; /* スマホサイズ */
+    max-width: 420px;
     background-color: var(--bg-color);
     min-height: 100vh;
     box-shadow: 0 0 20px rgba(0,0,0,0.05);
@@ -55,7 +47,6 @@ body {
     overflow: hidden;
 }
 
-/* 🧭 ナビゲーション */
 .top-nav {
     display: flex;
     justify-content: space-between;
@@ -84,7 +75,6 @@ body {
     background-color: rgba(0,0,0,0.05);
 }
 
-/* 📱 メインコンテンツ領域 */
 #main-content {
     flex: 1;
     padding: 0 20px 40px;
@@ -93,7 +83,6 @@ body {
     position: relative;
 }
 
-/* ビューの切り替え (ふんわりフェード) */
 .view {
     position: absolute;
     top: 0;
@@ -118,7 +107,6 @@ body {
     display: none !important;
 }
 
-/* ✍️ 入力画面 */
 .prompt-text {
     margin-top: 20px;
     margin-bottom: 24px;
@@ -153,7 +141,6 @@ body {
     color: #C7C7CC;
 }
 
-/* ボタン類 */
 .action-area {
     margin-top: 32px;
     display: flex;
@@ -190,7 +177,6 @@ button {
     border: 1px solid var(--text-muted);
 }
 
-/* 🚨 危機対応リンク */
 .crisis-card {
     margin-top: 16px;
     background-color: var(--crisis-bg);
@@ -204,15 +190,17 @@ button {
 .crisis-card p {
     color: var(--crisis-color);
     margin-bottom: 8px;
+    line-height: 1.5;
 }
 
 .crisis-card a {
     color: var(--text-main);
     text-decoration: underline;
     text-decoration-color: var(--crisis-color);
+    display: inline-block;
+    margin-top: 4px;
 }
 
-/* 💬 フィードバック結果画面 */
 .feedback-card {
     background-color: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -236,7 +224,7 @@ button {
 .fb-section.fact {
     font-size: 0.95rem;
     color: var(--text-muted);
-    animation-delay: 1.5s; /* 少し遅れて表示 (読ませる間をつくる) */
+    animation-delay: 1.5s; 
 }
 
 .fb-section.closing {
@@ -244,7 +232,7 @@ button {
     font-weight: 500;
     color: var(--text-main);
     text-align: center;
-    animation-delay: 3.0s; /* 最後に表示 */
+    animation-delay: 3.0s; 
 }
 
 .divider {
@@ -258,8 +246,6 @@ button {
 .divider:nth-of-type(1) { animation-delay: 1.2s; }
 .divider:nth-of-type(2) { animation-delay: 2.7s; }
 
-
-/* 📈 履歴・グラフ画面 */
 .graph-container {
     background-color: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -280,7 +266,6 @@ button {
     margin-bottom: 24px;
 }
 
-/* アニメーション用キーフレーム */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
