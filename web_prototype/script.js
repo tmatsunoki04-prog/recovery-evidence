@@ -8,8 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn = document.getElementById('back-btn');
     const historyBtn = document.getElementById('history-btn');
     
-    const crisisLink = document.getElementById('crisis-link');
-    
     const fbEmpathy = document.getElementById('fb-empathy');
     const fbFact = document.getElementById('fb-fact');
     const fbClosing = document.getElementById('fb-closing');
@@ -19,20 +17,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('waveChart').getContext('2d');
     let chartInstance = null;
 
-    const STORAGE_KEY = 'mental_app_records';
-    let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    // --- データ保存の正式化・マイグレーション ---
+    const OLD_STORAGE_KEY = 'mental_app_records';
+    const NEW_STORAGE_KEY = 'recoveryEvidenceLogs';
+    
+    function loadAndMigrateRecords() {
+        let logs = JSON.parse(localStorage.getItem(NEW_STORAGE_KEY));
+        if (!logs) {
+            const oldLogs = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY));
+            if (oldLogs && oldLogs.length > 0) {
+                logs = oldLogs.map(r => {
+                    const extracted = r.extractedTags || [];
+                    return {
+                        id: (r.id || Date.now()).toString(),
+                        text: r.text || "",
+                        createdAt: new Date(r.timestamp || Date.now()).toISOString(),
+                        crisisFlag: r.crisisFlag || false,
+                        tags: {
+                            shindoi: extracted.includes('しんどさ') ? 1 : 0,
+                            guruguru: extracted.includes('ぐるぐる') ? 1 : 0,
+                            dekita: extracted.includes('動けたこと') ? 1 : 0
+                        }
+                    };
+                });
+                localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(logs));
+            } else {
+                logs = [];
+            }
+        }
+        return logs;
+    }
 
-    const crisisWords = ['死にたい', '消えたい', 'いなくなりたい', 'もう無理', '限界', '終わりにしたい'];
-    const shindosaWords = ['しんどい', 'だるい', '動けない'];
-    const guruguruWords = ['頭がぐるぐる', '不安', '焦り'];
-    const ugoketaWords = ['動けた', '出られた', '少しできた'];
+    let records = loadAndMigrateRecords();
+
+    // --- 語彙の拡張 ---
+    const crisisWords = [
+        '死にたい', '消えたい', 'いなくなりたい', 'もう無理', 'もうむり',
+        '限界', '終わりにしたい', '消えたいです', 'つかれた', '生きていたくない', 'しにたい'
+    ];
+    
+    const shindoiWords = [
+        'しんどい', 'だるい', '動けない', 'つらい', '疲れた', 'つかれた', '重い', '何もできない'
+    ];
+    
+    const guruguruWords = [
+        'ぐるぐる', '不安', '焦り', '落ち着かない', '考えすぎ', '頭が回る', '頭がうるさい', 'ごちゃごちゃ'
+    ];
+    
+    const dekitaWords = [
+        '動けた', '出られた', '少しできた', 'やれた', '起きられた', 'できた', '行けた', '食べられた'
+    ];
 
     function extractTags(text) {
-        const tags = [];
-        if (shindosaWords.some(w => text.includes(w))) tags.push('しんどさ');
-        if (guruguruWords.some(w => text.includes(w))) tags.push('ぐるぐる');
-        if (ugoketaWords.some(w => text.includes(w))) tags.push('動けたこと');
-        return tags;
+        let shindoi = 0;
+        let guruguru = 0;
+        let dekita = 0;
+        if (shindoiWords.some(w => text.includes(w))) shindoi = 1;
+        if (guruguruWords.some(w => text.includes(w))) guruguru = 1;
+        if (dekitaWords.some(w => text.includes(w))) dekita = 1;
+        return { shindoi, guruguru, dekita };
     }
 
     function hasCrisisWord(text) {
@@ -42,12 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     journalInput.addEventListener('input', () => {
         const text = journalInput.value.trim();
         submitBtn.disabled = text.length === 0;
-        
-        if (hasCrisisWord(text)) {
-            crisisLink.classList.remove('hidden');
-        } else {
-            crisisLink.classList.add('hidden');
-        }
     });
 
     function switchView(targetView) {
@@ -72,55 +109,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const tags = extractTags(text);
         
         const newRecord = {
-            id: Date.now(),
+            id: Date.now().toString(),
             text: text,
-            timestamp: Date.now(),
+            createdAt: new Date().toISOString(),
             crisisFlag: crisisFlag,
-            extractedTags: tags
+            tags: tags
         };
         
         records.push(newRecord);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(records));
 
         submitBtn.textContent = '生成中...';
         submitBtn.disabled = true;
         
         setTimeout(() => {
+            // --- 危機時の完全分離 ---
             if (crisisFlag) {
                 fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです。</p>';
-                fbFact.innerHTML = '<p>いま使える相談先があります。下のボタンから窓口を見てみてください。</p>';
-                fbClosing.innerHTML = '';
+                fbFact.innerHTML = '<p>いま使える相談先があります。</p>';
+                fbClosing.innerHTML = '<div class="crisis-card"><p>ひとまず相談先を見られる状態にしておきます</p><a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank">相談窓口を見てみる</a></div>';
+                
+                divider1.style.display = 'block';
+                divider2.style.display = 'block'; 
             } else {
+                // --- 初回/継続の返答分岐 ---
                 const isFirstOrFew = records.length <= 2;
                 
                 if (isFirstOrFew) {
                     let empathyText = '今日はしんどい日ですね。';
-                    if (tags.includes('ぐるぐる')) empathyText = '頭のぐるぐるが強そうですね。';
-                    else if (tags.includes('しんどさ')) empathyText = '動けない感じが強い日ですね。';
-                    else if (tags.includes('動けたこと')) empathyText = '少し動けたのですね。';
+                    if (tags.guruguru) empathyText = '頭のぐるぐるが強そうですね。';
+                    else if (tags.shindoi) empathyText = 'しんどさが強い日ですね。';
+                    else if (tags.dekita) empathyText = '少し動けたのですね。';
                     
                     fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
-                    fbFact.innerHTML = '';
-                    fbClosing.innerHTML = '<p>吐き出していただき、ありがとうございます。</p>';
+                    fbFact.innerHTML = ''; // 過去比較はしない
+                    fbClosing.innerHTML = '<p>いまを残していただき、ありがとうございます。</p>';
                 } else {
                     let empathyText = '今日もお疲れさまです。';
-                    if (tags.includes('しんどさ')) empathyText = '今日はしんどさが強い日ですね。';
-                    if (tags.includes('ぐるぐる')) empathyText = '今日は頭のぐるぐるが強い日ですね。';
-                    if (tags.includes('動けたこと')) empathyText = '今日は少し動けたのですね。';
+                    if (tags.shindoi) empathyText = '今日はしんどさが強い日ですね。';
+                    if (tags.guruguru) empathyText = '今日は頭のぐるぐるが強い日ですね。';
+                    if (tags.dekita) empathyText = '今日は少し動けたのですね。';
                     
-                    let factText = '波はありますが、全部が悪い日ではなくなってきています。';
-                    const pastUgoketa = records.slice(0, -1).filter(r => r.extractedTags.includes('動けたこと')).length;
-                    const pastShindosa = records.slice(0, -1).filter(r => r.extractedTags.includes('しんどさ')).length;
+                    let factText = '波はありますが、記録を残せる日が続いています。';
+                    const pastDekita = records.slice(0, -1).filter(r => r.tags && r.tags.dekita > 0).length;
+                    const pastShindoi = records.slice(0, -1).filter(r => r.tags && r.tags.shindoi > 0).length;
                     
-                    if (tags.includes('動けたこと') && pastUgoketa > 0) {
+                    if (tags.dekita && pastDekita > 0) {
                         factText = '最近は「少し動けた」と書かれる日が前より増えています。';
-                    } else if (tags.includes('しんどさ') && pastShindosa > 0) {
+                    } else if (tags.shindoi && pastShindoi > 0) {
                         factText = 'しんどい日の中でも、短い言葉で残せる日は続いています。';
                     }
 
                     fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
                     fbFact.innerHTML = `<p>${factText}</p>`;
-                    fbClosing.innerHTML = '<p>ゆっくりで大丈夫です。</p>';
+                    fbClosing.innerHTML = '<p>ゆっくり休むことも大切です。</p>'; // 大丈夫です、治って等は禁止
                 }
             }
             
@@ -147,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.textContent = '吐き出す';
             submitBtn.disabled = false;
             journalInput.value = '';
-            crisisLink.classList.add('hidden');
             
         }, 1000);
     });
@@ -174,27 +215,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const labels = records.map((_, i) => i + 1);
         
-        let shindosaData = [];
+        let shindoiData = [];
         let guruguruData = [];
-        let ugoketaData = [];
+        let dekitaData = [];
         
-        let shindosaScore = 0;
+        let shindoiScore = 0;
         let guruguruScore = 0;
-        let ugoketaScore = 0;
+        let dekitaScore = 0;
 
         records.forEach(r => {
-            if (r.extractedTags.includes('しんどさ')) shindosaScore += 1;
-            else if (shindosaScore > 0) shindosaScore -= 0.5;
+            const tags = r.tags || {shindoi:0, guruguru:0, dekita:0};
+            if (tags.shindoi > 0) shindoiScore += 1;
+            else if (shindoiScore > 0) shindoiScore -= 0.5;
 
-            if (r.extractedTags.includes('ぐるぐる')) guruguruScore += 1;
+            if (tags.guruguru > 0) guruguruScore += 1;
             else if (guruguruScore > 0) guruguruScore -= 0.5;
 
-            if (r.extractedTags.includes('動けたこと')) ugoketaScore += 1;
-            else if (ugoketaScore > 0) ugoketaScore -= 0.5;
+            if (tags.dekita > 0) dekitaScore += 1;
+            else if (dekitaScore > 0) dekitaScore -= 0.5;
 
-            shindosaData.push(Math.max(0, shindosaScore));
+            shindoiData.push(Math.max(0, shindoiScore));
             guruguruData.push(Math.max(0, guruguruScore));
-            ugoketaData.push(Math.max(0, ugoketaScore));
+            dekitaData.push(Math.max(0, dekitaScore));
         });
 
         chartInstance = new Chart(ctx, {
@@ -204,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [
                     {
                         label: 'しんどさ',
-                        data: shindosaData,
+                        data: shindoiData,
                         borderColor: '#A3B1C6',
                         backgroundColor: 'rgba(163, 177, 198, 0.1)',
                         borderWidth: 2,
@@ -224,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     {
                         label: '動けたこと',
-                        data: ugoketaData,
+                        data: dekitaData,
                         borderColor: '#D8C3BA', 
                         backgroundColor: 'rgba(216, 195, 186, 0.1)',
                         borderWidth: 2,
