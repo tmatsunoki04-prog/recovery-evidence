@@ -62,19 +62,23 @@
                         <div id="fb-strength-list"></div>
                     </div>
 
-                    <!-- D. これまでの波 -->
+                    <!-- D & E. 戻り始めているもの / 過去との比較 -->
                     <div class="ui-card">
-                        <span class="section-title">これまでの波</span>
+                        <span class="section-title">これまでの波と回復の痕跡</span>
                         <div id="fb-comparison-area">
-                            <div id="fb-comparison-text" style="font-size: 0.95rem; margin-bottom: 12px;"></div>
+                            <div id="fb-comparison-text" style="font-size: 0.95rem; margin-bottom: 12px; line-height: 1.6;"></div>
                             <div id="fb-mini-chart-card" class="mini-chart-box">
                                 <!-- Wave logic placeholder -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- E. 短い返し -->
-                    <div id="fb-closing-text" style="font-size: 1.05rem; padding: 10px 0; line-height: 1.5;"></div>
+                    <!-- F. 根拠カード (小さく表示) -->
+                    <div id="fb-evidence-card" class="evidence-card" style="font-size: 0.8rem; color: #888; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.3); margin-top: 8px;">
+                        <!-- JS injected data -->
+                    </div>
+
+                    <div id="fb-closing-text" style="display:none;"></div> <!-- Hidden but kept for script compat -->
 
                 </div>
             </section>
@@ -117,25 +121,6 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
             </div>
         </nav>
-
-            <!-- 3. 履歴画面 -->
-            <section id="history-view" class="view hidden">
-                <div class="period-toggle">
-                    <button class="toggle-btn active" data-range="7">7日</button>
-                    <button class="toggle-btn" data-range="30">30日</button>
-                </div>
-
-                <div class="graph-box">
-                    <canvas id="waveChart"></canvas>
-                </div>
-
-                <div id="history-summary" class="history-summary"></div>
-
-                <div class="recent-records-section">
-                    <p class="recent-logs-title">最近の記録</p>
-                    <div id="recent-logs-list"></div>
-                </div>
-
                 <div class="action-area">
                     <button id="history-back-btn" class="secondary-btn">戻る</button>
                 </div>
