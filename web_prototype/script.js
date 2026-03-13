@@ -21,29 +21,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const OLD_STORAGE_KEY = 'mental_app_records';
     const NEW_STORAGE_KEY = 'recoveryEvidenceLogs';
 
-    let records = JSON.parse(localStorage.getItem(NEW_STORAGE_KEY));
-    if (!records) {
-        const oldRecords = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY));
-        if (oldRecords && oldRecords.length > 0) {
-            records = oldRecords.map(r => {
-                const ext = r.extractedTags || [];
-                return {
+    /**
+     * ローカルストレージからの読み込みとマイグレーション
+     */
+    function loadRecords() {
+        let logs = JSON.parse(localStorage.getItem(NEW_STORAGE_KEY));
+        
+        // 旧形式のデータがある場合は移行する
+        if (!logs) {
+            const oldData = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY));
+            if (oldData && Array.isArray(oldData)) {
+                logs = oldData.map(r => ({
                     id: (r.id || Date.now()).toString(),
                     text: r.text || "",
                     createdAt: new Date(r.timestamp || Date.now()).toISOString(),
                     crisisFlag: r.crisisFlag || false,
                     tags: {
-                        shindoi: ext.includes('しんどさ') ? 1 : 0,
-                        guruguru: ext.includes('ぐるぐる') ? 1 : 0,
-                        dekita: ext.includes('動けたこと') ? 1 : 0
+                        shindoi: (r.extractedTags || []).includes('しんどさ') ? 1 : 0,
+                        guruguru: (r.extractedTags || []).includes('ぐるぐる') ? 1 : 0,
+                        dekita: (r.extractedTags || []).includes('動けたこと') ? 1 : 0
                     }
-                };
-            });
-            localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(records));
-        } else {
-            records = [];
+                }));
+                localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(logs));
+                // 移行後は旧データを削除しても良いが、安全のため残す場合は何もしない
+            } else {
+                logs = [];
+            }
         }
+        return logs;
     }
+
+    let records = loadRecords();
 
     // 2. 危機語彙を増やす
     const crisisWords = [
@@ -55,11 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const shindoiWords = [
         'しんどい', 'だるい', '動けない', 'つらい', '疲れた', 'つかれた', '重い', '何もできない'
     ];
-    
     const guruguruWords = [
         'ぐるぐる', '不安', '焦り', '落ち着かない', '考えすぎ', '頭が回る', '頭がうるさい', 'ごちゃごちゃ'
     ];
-    
     const dekitaWords = [
         '動けた', '出られた', '少しできた', 'やれた', '起きられた', 'できた', '行けた', '食べられた'
     ];
@@ -82,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function switchView(targetView) {
+        // 全ビューのフェードアウト
         [inputView, feedbackView, historyView].forEach(view => {
             view.classList.remove('active');
             setTimeout(() => {
@@ -91,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 400); 
         });
         
+        // ターゲットビューの表示
         targetView.classList.remove('hidden');
         setTimeout(() => {
             targetView.classList.add('active');
@@ -102,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const crisisFlag = hasCrisisWord(text);
         const tags = extractTags(text);
         
+        // データ保存の正規化
         const newRecord = {
             id: Date.now().toString(),
             text: text,
@@ -116,63 +125,66 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = '生成中...';
         submitBtn.disabled = true;
         
+        // 生成演出（1秒）
         setTimeout(() => {
-            // 1. 危機時表示を通常表示と完全に分離する / 6. 危機時だけは必ず専用文にする
+            // フィードバック内容の構築
+            fbEmpathy.innerHTML = '';
+            fbFact.innerHTML = '';
+            fbClosing.innerHTML = '';
+            divider1.style.display = 'none';
+            divider2.style.display = 'none';
+
+            // 1. 危機時表示を通常表示と完全に分離する / 6. 危機時は専用文
             if (crisisFlag) {
                 fbEmpathy.innerHTML = '<p>今はひとりで抱えない方がよさそうです</p>';
-                fbFact.innerHTML = '';
-                fbClosing.innerHTML = '<div class="crisis-card" style="margin-top:0;"><p>いま使える相談先があります<br>ひとまず相談先を見られる状態にしておきます</p><a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank">相談窓口を見てみる</a></div>';
-                
-                divider1.style.display = 'none';
-                divider2.style.display = 'none'; 
+                fbFact.innerHTML = '<p>いま使える相談先があります</p>';
+                fbClosing.innerHTML = `
+                    <div class="crisis-card" style="margin-top:0; border:1px solid #FFDCDC;">
+                        <p>ひとまず相談先を見られる状態にしておきます</p>
+                        <a href="https://www.mhlw.go.jp/mamorouyokokoro/soudan/kokoro/" target="_blank" style="font-weight:700;">相談窓口を見てみる</a>
+                    </div>
+                `;
+                divider1.style.display = 'block';
+                divider2.style.display = 'block';
             } else {
+                // 通常・継続の返答分岐
                 const isFirstOrFew = records.length <= 2;
                 
                 if (isFirstOrFew) {
-                    let empathyText = '今日はしんどい日ですね。';
-                    if (tags.guruguru) empathyText = '頭のぐるぐるが強そうですね。';
-                    else if (tags.shindoi) empathyText = 'しんどさが強い日ですね。';
-                    else if (tags.dekita) empathyText = '少し動けたのですね。';
+                    let empathy = '今日はしんどい日ですね。';
+                    if (tags.guruguru) empathy = '頭のぐるぐるが強そうですね。';
+                    else if (tags.shindoi) empathy = 'しんどさが強い日ですね。';
+                    else if (tags.dekita) empathy = '少し動けたのですね。';
                     
-                    fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
-                    fbFact.innerHTML = '';
-                    fbClosing.innerHTML = '<p>いまを残していただき、ありがとうございます。</p>';
+                    fbEmpathy.innerHTML = `<p>${empathy}</p>`;
+                    fbClosing.innerHTML = '<p>いまを吐き出していただき、ありがとうございます。</p>';
                 } else {
-                    let empathyText = '今日もお疲れさまです。';
-                    if (tags.shindoi) empathyText = '今日はしんどさが強い日ですね。';
-                    if (tags.guruguru) empathyText = '今日は頭のぐるぐるが強い日ですね。';
-                    if (tags.dekita) empathyText = '今日は少し動けたのですね。';
+                    let empathy = '今日もお疲れさまです。';
+                    if (tags.shindoi) empathy = '今日はしんどさが強い日ですね。';
+                    if (tags.guruguru) empathy = '今日は頭のぐるぐるが強い日ですね。';
+                    if (tags.dekita) empathy = '今日は少し動けたのですね。';
                     
-                    let factText = '波はありますが、記録を残せる日が続いています。';
-                    const pastDekita = records.slice(0, -1).filter(r => r.tags && r.tags.dekita > 0).length;
-                    const pastShindoi = records.slice(0, -1).filter(r => r.tags && r.tags.shindoi > 0).length;
+                    let fact = '波はありますが、記録を残せる日が続いています。';
+                    const pastDekitaCount = records.slice(0, -1).filter(r => r.tags && r.tags.dekita > 0).length;
+                    const pastShindoiCount = records.slice(0, -1).filter(r => r.tags && r.tags.shindoi > 0).length;
                     
-                    if (tags.dekita > 0 && pastDekita > 0) {
-                        factText = '最近は「少し動けた」と書かれる日が前より増えています。';
-                    } else if (tags.shindoi > 0 && pastShindoi > 0) {
-                        factText = 'しんどい日の中でも、短い言葉で残せる日は続いています。';
+                    if (tags.dekita > 0 && pastDekitaCount > 0) {
+                        fact = '「少し動けた」と書かれる日が前より増えています。';
+                    } else if (tags.shindoi > 0 && pastShindoiCount > 0) {
+                        fact = 'しんどい日の中でも、感情を言葉にできる日は増えています。';
                     }
 
-                    fbEmpathy.innerHTML = `<p>${empathyText}</p>`;
-                    fbFact.innerHTML = `<p>${factText}</p>`;
-                    fbClosing.innerHTML = '<p>ゆっくり休むことも大切です。</p>';
+                    fbEmpathy.innerHTML = `<p>${empathy}</p>`;
+                    fbFact.innerHTML = `<p>${fact}</p>`;
+                    fbClosing.innerHTML = '<p>ゆっくりで大丈夫です。</p>';
+                    divider1.style.display = 'block';
                 }
+                divider2.style.display = 'block';
             }
             
-            [fbEmpathy, fbFact, fbClosing].forEach(el => {
-                if(el && el.innerHTML !== '') {
-                    el.style.animation = 'none';
-                    el.offsetHeight; 
-                    el.style.animation = null;
-                }
-            });
-            
-            if (!crisisFlag) {
-                divider1.style.display = (fbFact.innerHTML === '') ? 'none' : 'block';
-                divider2.style.display = (fbClosing.innerHTML === '') ? 'none' : 'block';
-            }
-            [divider1, divider2].forEach(el => {
-                if(el.style.display !== 'none') {
+            // アニメーションの再トリガー
+            [fbEmpathy, fbFact, fbClosing, divider1, divider2].forEach(el => {
+                if(el && (el.innerHTML !== '' || el.style.display === 'block')) {
                     el.style.animation = 'none';
                     el.offsetHeight; 
                     el.style.animation = null;
@@ -214,24 +226,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let guruguruData = [];
         let dekitaData = [];
         
-        let shindoiScore = 0;
-        let guruguruScore = 0;
-        let dekitaScore = 0;
+        let sScore = 0;
+        let gScore = 0;
+        let dScore = 0;
 
         records.forEach(r => {
-            const tags = r.tags || {shindoi:0, guruguru:0, dekita:0};
-            if (tags.shindoi > 0) shindoiScore += 1;
-            else if (shindoiScore > 0) shindoiScore -= 0.5;
+            const t = r.tags || {shindoi:0, guruguru:0, dekita:0};
+            if (t.shindoi > 0) sScore += 1; else if (sScore > 0) sScore -= 0.3;
+            if (t.guruguru > 0) gScore += 1; else if (gScore > 0) gScore -= 0.3;
+            if (t.dekita > 0) dScore += 1; else if (dScore > 0) dScore -= 0.3;
 
-            if (tags.guruguru > 0) guruguruScore += 1;
-            else if (guruguruScore > 0) guruguruScore -= 0.5;
-
-            if (tags.dekita > 0) dekitaScore += 1;
-            else if (dekitaScore > 0) dekitaScore -= 0.5;
-
-            shindoiData.push(Math.max(0, shindoiScore));
-            guruguruData.push(Math.max(0, guruguruScore));
-            dekitaData.push(Math.max(0, dekitaScore));
+            shindoiData.push(Math.max(0, sScore));
+            guruguruData.push(Math.max(0, gScore));
+            dekitaData.push(Math.max(0, dScore));
         });
 
         chartInstance = new Chart(ctx, {
@@ -243,31 +250,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         label: 'しんどさ',
                         data: shindoiData,
                         borderColor: '#A3B1C6',
-                        backgroundColor: 'rgba(163, 177, 198, 0.1)',
+                        backgroundColor: 'rgba(163, 177, 198, 0.05)',
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: false
+                        fill: true
                     },
                     {
                         label: '頭のぐるぐる',
                         data: guruguruData,
                         borderColor: '#C2CEC2',
-                        backgroundColor: 'rgba(194, 206, 194, 0.1)',
+                        backgroundColor: 'rgba(194, 206, 194, 0.05)',
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: false
+                        fill: true
                     },
                     {
                         label: '動けたこと',
                         data: dekitaData,
                         borderColor: '#D8C3BA', 
-                        backgroundColor: 'rgba(216, 195, 186, 0.1)',
+                        backgroundColor: 'rgba(216, 195, 186, 0.05)',
                         borderWidth: 2,
                         tension: 0.4,
                         pointRadius: 0,
-                        fill: false
+                        fill: true
                     }
                 ]
             },

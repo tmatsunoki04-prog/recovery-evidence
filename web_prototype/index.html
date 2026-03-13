@@ -19,6 +19,7 @@
         </nav>
 
         <main id="main-content">
+            <!-- 入力画面 -->
             <section id="input-view" class="view active">
                 <div class="prompt-text">
                     <p>いま、どんな感じですか？</p>
@@ -33,6 +34,7 @@
                 </div>
             </section>
 
+            <!-- フィードバック画面（通常/危機をJSで切り替え） -->
             <section id="feedback-view" class="view hidden">
                 <div class="feedback-card">
                     <div id="fb-empathy" class="fb-section empathy"></div>
@@ -47,6 +49,7 @@
                 </div>
             </section>
 
+            <!-- 履歴/グラフ画面 -->
             <section id="history-view" class="view hidden">
                 <div class="graph-container">
                     <h2>これまでの波</h2>
@@ -58,6 +61,7 @@
         </main>
     </div>
 
+    <!-- 依存ライブラリとメインロジック -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
